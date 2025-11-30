@@ -4,6 +4,10 @@ This project is a weight-based product sorting system built with two microcontro
 
 **Product Demo:** [Watch on YouTube](https://youtube.com/shorts/_zraOCX1zNk)
 
+## The Team
+
+This project was developed by a team of three. My primary responsibility was coding the conveyor and sorting mechanism (Module 2) and establishing communication between the two modules.
+
 ## Product Images
 
 | | | |
@@ -60,7 +64,4 @@ The schematic (`Sch_conveyor_sorting.png`) was originally designed for a color s
 
 ![Schematic](Sch_conveyor_sorting.png)
 ![PCB](Pcb_conveyor_sorting.png)
-
-## The Team
-
-This project was developed by a team of three. My primary responsibility was coding the conveyor and sorting mechanism (Module 2) and establishing communication between the two modules.
+![Weight Sensor Schematic](Sch_weight_sensor.png)
