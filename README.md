@@ -62,6 +62,6 @@ The code for this project was written using the **PlatformIO IDE** in **Visual S
 
 The schematic (`Sch_conveyor_sorting.png`) was originally designed for a color sorting project but was adapted for this weight sorting system.
 
-![Schematic](Sch_conveyor_sorting.png)
+![Schematic](Sch_conveyor_sorting(1).png)
 ![PCB](Pcb_conveyor_sorting.png)
 ![Weight Sensor Schematic](Sch_weight_sensor.png)
