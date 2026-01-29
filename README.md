@@ -41,7 +41,7 @@ The system consists of two main modules:
     *   Loadcell
     *   HX711 Amplifier Module
     *   I2C LCD
-    *   MG90 Servo
+    *   MG996r Servo
 
 ### Module 2 (RECEIVER)
 *   **Board:** ESP32-S3

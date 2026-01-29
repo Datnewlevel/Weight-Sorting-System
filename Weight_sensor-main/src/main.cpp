@@ -12,12 +12,13 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 #define I2C_SDA 21
 #define I2C_SCL 22
 
-// --- Cau hinh HX711 ---
+// --- Cau hinh HX711 --- 
 const int LOADCELL_DOUT_PIN = 4;
 const int LOADCELL_SCK_PIN = 5;
 HX711 scale;
 
-// --- Cau hinh Servo ---
+// --- Cau hinh Servo MG996R 360° voi thanh rang ---
+// Servo 360°: 90 = dung, <90 = quay 1 chieu, >90 = quay chieu nguoc
 #define SERVO_PIN 17
 Servo myServo;
 
@@ -51,11 +52,14 @@ const float REMOVE_WEIGHT = 10.0;  // Nguong de reset (gram)
 const float DEAD_ZONE = 2.0;       
 const int MEASURE_TIME = 3000;     // Thoi gian do (3 giay)
 
-// --- Cau hinh Servo ---
-const int SERVO_STEP_DELAY = 25;    // Độ trễ giữa các bước cho phân loại (ms)
-const int SERVO_STEP_SIZE = 2;      // Độ lớn mỗi bước quay cho phân loại (độ)
-const int RETURN_STEP_DELAY = 25;   // Độ trễ giữa các bước khi đưa về giữa (ms)
-const int RETURN_STEP_SIZE = 2;     // Độ lớn mỗi bước quay khi đưa về giữa (độ)
+// --- Cau hinh Servo MG996R 360° voi thanh rang ---
+// Servo 360°: 90 = dung, <90 = quay day ra (nho=nhanh), >90 = quay thu ve (lon=nhanh)
+const int THOI_GIAN_DAY_RA = 2600;   // Thoi gian day ra (ms)
+const int THOI_GIAN_THU_VE = 3000;   // Thoi gian thu ve (ms)
+const int THOI_GIAN_CHO_DAY = 500;   // Thoi gian cho sau khi day (ms)
+const int TOC_DO_DAY_RA = 30;        // Toc do day ra (0-89, nho = nhanh)
+const int TOC_DO_THU_VE = 150;       // Toc do thu ve (91-180, lon = nhanh)
+const int GIA_TRI_DUNG = 90;         // Gia tri dung servo
 
 // Hàm gửi kết quả cân nặng qua ESP-NOW Serial
 void sendWeightResult(float weight_kg) {
@@ -76,23 +80,36 @@ void sendWeightResult(float weight_kg) {
   }
 }
 
-// Hàm di chuyển servo từ từ
-void moveServoSlowly(int startAngle, int endAngle, bool isReturning = false) {
-  int stepDelay = isReturning ? RETURN_STEP_DELAY : SERVO_STEP_DELAY;
-  int stepSize = isReturning ? RETURN_STEP_SIZE : SERVO_STEP_SIZE;
-  
-  if (startAngle < endAngle) {
-    for (int angle = startAngle; angle <= endAngle; angle += stepSize) {
-      myServo.write(angle);
-      delay(stepDelay);
-    }
-  } else {
-    for (int angle = startAngle; angle >= endAngle; angle -= stepSize) {
-      myServo.write(angle);
-      delay(stepDelay);
-    }
-  }
-  myServo.write(endAngle); // Đảm bảo đến đúng vị trí cuối
+// === HAM DIEU KHIEN SERVO MG996R 360° ===
+
+// Dung servo
+void dungServo() {
+  myServo.write(GIA_TRI_DUNG);
+}
+
+// Day thanh rang ra
+void dayThanhRangRa() {
+  Serial.println("-> Day thanh rang ra...");
+  myServo.write(TOC_DO_DAY_RA);
+  delay(THOI_GIAN_DAY_RA);
+  dungServo();
+  Serial.println("   Da day xong!");
+}
+
+// Thu thanh rang ve
+void thuThanhRangVe() {
+  Serial.println("<- Thu thanh rang ve...");
+  myServo.write(TOC_DO_THU_VE);
+  delay(THOI_GIAN_THU_VE);
+  dungServo();
+  Serial.println("   Da thu xong!");
+}
+
+// Chu ky tu dong: Day ra -> Cho -> Thu ve
+void chuKyDayThu() {
+  dayThanhRangRa();
+  delay(THOI_GIAN_CHO_DAY);
+  thuThanhRangVe();
 }
 
 void setup() {
@@ -113,11 +130,11 @@ void setup() {
   lcd.init();
   lcd.backlight();
   
-  // Khởi động Servo
+  // Khởi động Servo MG996R 360° với thanh răng
   ESP32PWM::allocateTimer(0);
   myServo.setPeriodHertz(50);
   myServo.attach(SERVO_PIN, 500, 2400);
-  myServo.write(90);  // Đưa servo về vị trí giữa
+  dungServo();  // Dung servo ngay khi khoi dong
   
   // Khởi động ESP-NOW Serial
   Serial.println("Khoi dong ESP-NOW Serial...");
@@ -282,12 +299,10 @@ void loop() {
         lcd.setCursor(0, 1);
         lcd.print("bang chuyen...");
         
-        delay(2000); // Chờ 2 giây
-        
-        // Điều khiển servo - quay một hướng
-        int currentAngle = myServo.read();
-        Serial.println("Quay servo de day hang xuong...");
-        moveServoSlowly(currentAngle, 180);
+        // Thuc hien chu ky: Day ra -> Cho -> Thu ve
+        Serial.println("Bat dau chu ky day hang...");
+        chuKyDayThu();
+        Serial.println("Hoan thanh chu ky!");
         
         lcd.clear();
         lcd.setCursor(0, 0);
@@ -304,14 +319,7 @@ void loop() {
         currentWeight = scale.get_units(5);
         
         if (currentWeight < REMOVE_WEIGHT) {
-          Serial.println("Can da ve 0, dua servo ve giua...");
-          lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print("Dua servo ve...");
-          
-          // Đưa servo về giữa với tốc độ nhanh hơn
-          int currentAngle = myServo.read();
-          moveServoSlowly(currentAngle, 90, true);  // true = sử dụng tốc độ trả về
+          Serial.println("Can da ve 0, san sang can tiep!");
           
           currentState = WAITING;
           lcd.clear();

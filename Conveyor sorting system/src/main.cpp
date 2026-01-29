@@ -376,7 +376,7 @@ void sortProduct(int weight) {
     
     servo1.write(SERVO1_SORT);
     servo2.write(SERVO2_HOME);
-    delay(3000);  // Wait longer for product to pass completely (3 seconds)
+    delay(4000);  // Wait longer for product to pass completely (4 seconds)
     resetServos();
     
   } else if (weight > 50 && weight <= 200) {
@@ -396,7 +396,7 @@ void sortProduct(int weight) {
     
     servo1.write(SERVO1_HOME);
     servo2.write(SERVO2_SORT);
-    delay(3000);  // Wait longer for product to pass completely (3 seconds)
+    delay(4000);  // Wait longer for product to pass completely (4 seconds)
     resetServos();
     
   } else {
